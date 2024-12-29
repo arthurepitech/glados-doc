@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Common.Environment.Types</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-2"></span><span>    </span><span class="annot"><a href="Common.Environment.Types.html#defineVar"><span class="hs-identifier">defineVar</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-3"></span><span>    </span><span class="annot"><a href="Common.Environment.Types.html#lookupVar"><span class="hs-identifier">lookupVar</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Common.Environment.Types.html#emptyEnv"><span class="hs-identifier">emptyEnv</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="annot"><a href="Common.Environment.Types.html#initEnv"><span class="hs-identifier">initEnv</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Common.Types.html#Env"><span class="hs-identifier">Env</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Common.Types.html#EvalContext"><span class="hs-identifier">EvalContext</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Common.Types.html#Eval"><span class="hs-identifier">Eval</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Common.Types.html"><span class="hs-identifier">Common.Types</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Reader</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.IORef</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span>             </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- | Cr&#233;e un environnement vide</span></span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Common.Environment.Types.html#emptyEnv"><span class="hs-identifier hs-type">emptyEnv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Common.Types.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span>
+</span><span id="line-19"></span><span id="emptyEnv"><span class="annot"><span class="annottext">emptyEnv :: IO Env
+</span><a href="Common.Environment.Types.html#emptyEnv"><span class="hs-identifier hs-var hs-var">emptyEnv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map String Value -&gt; IO Env
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">Map String Value
+forall k a. Map k a
+</span><span class="hs-identifier hs-var">Map.empty</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><span class="hs-comment">-- | Initialise un environnement avec des primitives</span></span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Common.Environment.Types.html#initEnv"><span class="hs-identifier hs-type">initEnv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Common.Types.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Common.Types.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span>
+</span><span id="line-23"></span><span id="initEnv"><span class="annot"><span class="annottext">initEnv :: [(String, Value)] -&gt; IO Env
+</span><a href="Common.Environment.Types.html#initEnv"><span class="hs-identifier hs-var hs-var">initEnv</span></a></span></span><span> </span><span id="local-6989586621679056874"><span class="annot"><span class="annottext">[(String, Value)]
+</span><a href="#local-6989586621679056874"><span class="hs-identifier hs-var">primitives</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-24"></span><span>    </span><span id="local-6989586621679056875"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056875"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Env
+</span><a href="Common.Environment.Types.html#emptyEnv"><span class="hs-identifier hs-var">emptyEnv</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><span class="annottext">Env -&gt; (Map String Value -&gt; Map String Value) -&gt; IO ()
+forall a. IORef a -&gt; (a -&gt; a) -&gt; IO ()
+</span><span class="hs-identifier hs-var">modifyIORef</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056875"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Map String Value -&gt; Map String Value -&gt; Map String Value
+forall k a. Ord k =&gt; Map k a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.union</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(String, Value)] -&gt; Map String Value
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">[(String, Value)]
+</span><a href="#local-6989586621679056874"><span class="hs-identifier hs-var">primitives</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>    </span><span class="annot"><span class="annottext">Env -&gt; IO Env
+forall a. a -&gt; IO a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056875"><span class="hs-identifier hs-var">env</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="annot"><span class="hs-comment">-- | D&#233;finit une variable dans l'environnement</span></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Common.Environment.Types.html#defineVar"><span class="hs-identifier hs-type">defineVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Common.Types.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Common.Types.html#Eval"><span class="hs-identifier hs-type">Eval</span></a></span><span> </span><span class="annot"><a href="Common.Types.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span>
+</span><span id="line-30"></span><span id="defineVar"><span class="annot"><span class="annottext">defineVar :: String -&gt; Value -&gt; Eval Value
+</span><a href="Common.Environment.Types.html#defineVar"><span class="hs-identifier hs-var hs-var">defineVar</span></a></span></span><span> </span><span id="local-6989586621679056879"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056879"><span class="hs-identifier hs-var">var</span></a></span></span><span> </span><span id="local-6989586621679056880"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679056880"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679056881"><span class="annot"><span class="annottext">EvalContext
+</span><a href="#local-6989586621679056881"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ReaderT EvalContext (ExceptT TypeError IO) EvalContext
+forall r (m :: * -&gt; *). MonadReader r m =&gt; m r
+</span><span class="hs-identifier hs-var">ask</span></span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679056883"><span class="annot"><span class="annottext">env :: Env
+</span><a href="#local-6989586621679056883"><span class="hs-identifier hs-var hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EvalContext -&gt; Env
+</span><a href="Common.Types.html#envRef"><span class="hs-identifier hs-var">envRef</span></a></span><span> </span><span class="annot"><span class="annottext">EvalContext
+</span><a href="#local-6989586621679056881"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-33"></span><span>    </span><span id="local-6989586621679056885"><span class="annot"><span class="annottext">Map String Value
+</span><a href="#local-6989586621679056885"><span class="hs-identifier hs-var">envMap</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Map String Value)
+-&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value)
+forall a. IO a -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Map String Value)
+ -&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value))
+-&gt; IO (Map String Value)
+-&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Env -&gt; IO (Map String Value)
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056883"><span class="hs-identifier hs-var">env</span></a></span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">String -&gt; Map String Value -&gt; Maybe Value
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056879"><span class="hs-identifier hs-var">var</span></a></span><span> </span><span class="annot"><span class="annottext">Map String Value
+</span><a href="#local-6989586621679056885"><span class="hs-identifier hs-var">envMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-35"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Common.Types.html#PrimFunc"><span class="hs-identifier hs-type">PrimFunc</span></a></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; Eval Value
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-36"></span><span>            </span><span class="annot"><span class="annottext">TypeError -&gt; Eval Value
+forall a. TypeError -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(TypeError -&gt; Eval Value) -&gt; TypeError -&gt; Eval Value
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; TypeError
+</span><a href="Common.Types.html#InvalidArguments"><span class="hs-identifier hs-var">InvalidArguments</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Cannot redefine primitive function&quot;</span></span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><span class="annottext">Maybe Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>            </span><span class="annot"><span class="annottext">IO () -&gt; ReaderT EvalContext (ExceptT TypeError IO) ()
+forall a. IO a -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; ReaderT EvalContext (ExceptT TypeError IO) ())
+-&gt; IO () -&gt; ReaderT EvalContext (ExceptT TypeError IO) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Env -&gt; (Map String Value -&gt; Map String Value) -&gt; IO ()
+forall a. IORef a -&gt; (a -&gt; a) -&gt; IO ()
+</span><span class="hs-identifier hs-var">modifyIORef</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056883"><span class="hs-identifier hs-var">env</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Value -&gt; Map String Value -&gt; Map String Value
+forall k a. Ord k =&gt; k -&gt; a -&gt; Map k a -&gt; Map k a
+</span><span class="hs-identifier hs-var">Map.insert</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056879"><span class="hs-identifier hs-var">var</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679056880"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>            </span><span class="annot"><span class="annottext">Value -&gt; Eval Value
+forall a. a -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679056880"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="annot"><span class="hs-comment">-- | Recherche une variable dans l'environnement</span></span><span>
+</span><span id="line-42"></span><span class="annot"><a href="Common.Environment.Types.html#lookupVar"><span class="hs-identifier hs-type">lookupVar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Common.Types.html#Eval"><span class="hs-identifier hs-type">Eval</span></a></span><span> </span><span class="annot"><a href="Common.Types.html#Value"><span class="hs-identifier hs-type">Value</span></a></span><span>
+</span><span id="line-43"></span><span id="lookupVar"><span class="annot"><span class="annottext">lookupVar :: String -&gt; Eval Value
+</span><a href="Common.Environment.Types.html#lookupVar"><span class="hs-identifier hs-var hs-var">lookupVar</span></a></span></span><span> </span><span id="local-6989586621679056893"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056893"><span class="hs-identifier hs-var">var</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-44"></span><span>    </span><span id="local-6989586621679056894"><span class="annot"><span class="annottext">EvalContext
+</span><a href="#local-6989586621679056894"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ReaderT EvalContext (ExceptT TypeError IO) EvalContext
+forall r (m :: * -&gt; *). MonadReader r m =&gt; m r
+</span><span class="hs-identifier hs-var">ask</span></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679056895"><span class="annot"><span class="annottext">env :: Env
+</span><a href="#local-6989586621679056895"><span class="hs-identifier hs-var hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EvalContext -&gt; Env
+</span><a href="Common.Types.html#envRef"><span class="hs-identifier hs-var">envRef</span></a></span><span> </span><span class="annot"><span class="annottext">EvalContext
+</span><a href="#local-6989586621679056894"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span id="local-6989586621679056896"><span class="annot"><span class="annottext">Map String Value
+</span><a href="#local-6989586621679056896"><span class="hs-identifier hs-var">envMap</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Map String Value)
+-&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value)
+forall a. IO a -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (Map String Value)
+ -&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value))
+-&gt; IO (Map String Value)
+-&gt; ReaderT EvalContext (ExceptT TypeError IO) (Map String Value)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Env -&gt; IO (Map String Value)
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679056895"><span class="hs-identifier hs-var">env</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">String -&gt; Map String Value -&gt; Maybe Value
+forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056893"><span class="hs-identifier hs-var">var</span></a></span><span> </span><span class="annot"><span class="annottext">Map String Value
+</span><a href="#local-6989586621679056896"><span class="hs-identifier hs-var">envMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-48"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679056897"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679056897"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Eval Value
+forall a. a -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679056897"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-49"></span><span>        </span><span class="annot"><span class="annottext">Maybe Value
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypeError -&gt; Eval Value
+forall a. TypeError -&gt; ReaderT EvalContext (ExceptT TypeError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(TypeError -&gt; Eval Value) -&gt; TypeError -&gt; Eval Value
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; TypeError
+</span><a href="Common.Types.html#UnboundVariable"><span class="hs-identifier hs-var">UnboundVariable</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679056893"><span class="hs-identifier hs-var">var</span></a></span><span>
+</span><span id="line-50"></span></pre></body></html>
