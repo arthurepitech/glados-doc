@@ -1,0 +1,1065 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>  </span><span class="hs-comment">-- N&#233;cessaire pour ReaderT/ExceptT stack</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Language.Lisp.Primitives</span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Language.Lisp.Primitives.html#primitives"><span class="hs-identifier">primitives</span></a></span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Primitives.html#primitiveFunctions"><span class="hs-identifier">primitiveFunctions</span></a></span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html"><span class="hs-identifier">Language.Lisp.Types</span></a></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="annot"><a href="Language.Lisp.Primitives.html#primitives"><span class="hs-identifier hs-type">primitives</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#PrimFunc"><span class="hs-identifier hs-type">PrimFunc</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-11"></span><span id="primitives"><span class="annot"><span class="annottext">primitives :: [(String, PrimFunc)]
+</span><a href="Language.Lisp.Primitives.html#primitives"><span class="hs-identifier hs-var hs-var">primitives</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span> </span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-comment">-- Arithm&#233;tique</span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;+&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;-&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;*&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-16"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;div&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#divOp"><span class="hs-identifier hs-var">divOp</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;mod&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mod</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-comment">-- Comparaisons</span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;=&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(==)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&lt;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&gt;&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&gt;)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&gt;=&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&gt;=)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&lt;=&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(&lt;=)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;!=&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(/=)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-comment">-- Bool&#233;ens</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;and&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#boolBoolBinop"><span class="hs-identifier hs-var">boolBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">(&amp;&amp;)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;or&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#boolBoolBinop"><span class="hs-identifier hs-var">boolBoolBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">(||)</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;not&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#unaryOp"><span class="hs-identifier hs-var">unaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+</span><a href="Language.Lisp.Primitives.html#notOp"><span class="hs-identifier hs-var">notOp</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-comment">-- Listes</span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;car&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#car"><span class="hs-identifier hs-var">car</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cdr&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#cdr"><span class="hs-identifier hs-var">cdr</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cons&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#cons"><span class="hs-identifier hs-var">cons</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;list&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#list"><span class="hs-identifier hs-var">list</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;length&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#listLength"><span class="hs-identifier hs-var">listLength</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;null?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isNull"><span class="hs-identifier hs-var">isNull</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;list?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isList"><span class="hs-identifier hs-var">isList</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;make-list&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#makeList"><span class="hs-identifier hs-var">makeList</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-comment">-- Pr&#233;dicats</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;symbol?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isSymbol"><span class="hs-identifier hs-var">isSymbol</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;number?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isNumber"><span class="hs-identifier hs-var">isNumber</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isString"><span class="hs-identifier hs-var">isString</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;boolean?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isBoolean"><span class="hs-identifier hs-var">isBoolean</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-comment">-- Cha&#238;nes</span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string-append&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringAppend"><span class="hs-identifier hs-var">stringAppend</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string-length&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringLength"><span class="hs-identifier hs-var">stringLength</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string=?&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringEq"><span class="hs-identifier hs-var">stringEq</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-comment">-- Math</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;abs&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericUnaryOp"><span class="hs-identifier hs-var">numericUnaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;max&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericFoldOp"><span class="hs-identifier hs-var">numericFoldOp</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;min&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericFoldOp"><span class="hs-identifier hs-var">numericFoldOp</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;fact&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><a href="Language.Lisp.Primitives.html#factorial"><span class="hs-identifier hs-var">factorial</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Language.Lisp.Primitives.html#primitiveFunctions"><span class="hs-identifier hs-type">primitiveFunctions</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-55"></span><span id="primitiveFunctions"><span class="annot"><span class="annottext">primitiveFunctions :: [(String, LispVal)]
+</span><a href="Language.Lisp.Primitives.html#primitiveFunctions"><span class="hs-identifier hs-var hs-var">primitiveFunctions</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((String, PrimFunc) -&gt; (String, LispVal))
+-&gt; [(String, PrimFunc)] -&gt; [(String, LispVal)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679078522"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078522"><span class="hs-identifier hs-var">name</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">PrimFunc
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078522"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LPrimFunc"><span class="hs-identifier hs-var">LPrimFunc</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078522"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(String, PrimFunc)]
+</span><a href="Language.Lisp.Primitives.html#primitives"><span class="hs-identifier hs-var">primitives</span></a></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- Op&#233;rations num&#233;riques</span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-type">numericBinop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-59"></span><span id="numericBinop"><span class="annot"><span class="annottext">numericBinop :: (Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var hs-var">numericBinop</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-60"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679078526"><span class="annot"><span class="annottext">singleVal :: [LispVal]
+</span><a href="#local-6989586621679078526"><span class="hs-identifier hs-var">singleVal</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078526"><span class="hs-identifier hs-var">singleVal</span></a></span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericBinop"><span class="hs-identifier hs-var">numericBinop</span></a></span><span> </span><span id="local-6989586621679078527"><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679078527"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679078528"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078528"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal)
+-&gt; ([Integer] -&gt; Integer) -&gt; [Integer] -&gt; LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; [Integer] -&gt; Integer
+forall a. (a -&gt; a -&gt; a) -&gt; [a] -&gt; a
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; a -&gt; a) -&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">foldl1</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679078527"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">([Integer] -&gt; LispVal)
+-&gt; ReaderT LispEnv (ExceptT LispError IO) [Integer]
+-&gt; LispEval LispVal
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer)
+-&gt; [LispVal] -&gt; ReaderT LispEnv (ExceptT LispError IO) [Integer]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078528"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericUnaryOp"><span class="hs-identifier hs-type">numericUnaryOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-64"></span><span id="numericUnaryOp"><span class="annot"><span class="annottext">numericUnaryOp :: (Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericUnaryOp"><span class="hs-identifier hs-var hs-var">numericUnaryOp</span></a></span></span><span> </span><span id="local-6989586621679078535"><span class="annot"><span class="annottext">Integer -&gt; Integer
+</span><a href="#local-6989586621679078535"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078536"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078536"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal) -&gt; (Integer -&gt; Integer) -&gt; Integer -&gt; LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+</span><a href="#local-6989586621679078535"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal)
+-&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+-&gt; LispEval LispVal
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078536"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericUnaryOp"><span class="hs-identifier hs-var">numericUnaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679078537"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078537"><span class="hs-identifier hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078537"><span class="hs-identifier hs-var">args</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericFoldOp"><span class="hs-identifier hs-type">numericFoldOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-68"></span><span id="numericFoldOp"><span class="annot"><span class="annottext">numericFoldOp :: (Integer -&gt; Integer -&gt; Integer) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numericFoldOp"><span class="hs-identifier hs-var hs-var">numericFoldOp</span></a></span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-69"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numericFoldOp"><span class="hs-identifier hs-var">numericFoldOp</span></a></span><span> </span><span id="local-6989586621679078538"><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679078538"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679078539"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078539"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal)
+-&gt; ([Integer] -&gt; Integer) -&gt; [Integer] -&gt; LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer -&gt; Integer) -&gt; [Integer] -&gt; Integer
+forall a. (a -&gt; a -&gt; a) -&gt; [a] -&gt; a
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; a -&gt; a) -&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">foldl1</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679078538"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">([Integer] -&gt; LispVal)
+-&gt; ReaderT LispEnv (ExceptT LispError IO) [Integer]
+-&gt; LispEval LispVal
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer)
+-&gt; [LispVal] -&gt; ReaderT LispEnv (ExceptT LispError IO) [Integer]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078539"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- Division s&#233;curis&#233;e</span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Language.Lisp.Primitives.html#divOp"><span class="hs-identifier hs-type">divOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-73"></span><span id="divOp"><span class="annot"><span class="annottext">divOp :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#divOp"><span class="hs-identifier hs-var hs-var">divOp</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-type">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispError
+</span><a href="Language.Lisp.Types.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Error: division by zero&quot;</span></span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Language.Lisp.Primitives.html#divOp"><span class="hs-identifier hs-var">divOp</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078541"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078541"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679078542"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078542"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-75"></span><span>    </span><span id="local-6989586621679078543"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078543"><span class="hs-identifier hs-var">n1</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078541"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-76"></span><span>    </span><span id="local-6989586621679078544"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078544"><span class="hs-identifier hs-var">n2</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078542"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Integer -&gt; LispVal) -&gt; Integer -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispEval LispVal) -&gt; Integer -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">div</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078543"><span class="hs-identifier hs-var">n1</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078544"><span class="hs-identifier hs-var">n2</span></a></span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Language.Lisp.Primitives.html#divOp"><span class="hs-identifier hs-var">divOp</span></a></span><span> </span><span id="local-6989586621679078546"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078546"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078546"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- Factorielle</span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Language.Lisp.Primitives.html#factorial"><span class="hs-identifier hs-type">factorial</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-82"></span><span id="factorial"><span class="annot"><span class="annottext">factorial :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#factorial"><span class="hs-identifier hs-var hs-var">factorial</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-type">LNumber</span></a></span><span> </span><span id="local-6989586621679078547"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078547"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">]</span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078547"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispError
+</span><a href="Language.Lisp.Types.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;factorial: negative number&quot;</span></span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Integer -&gt; LispVal) -&gt; Integer -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispEval LispVal) -&gt; Integer -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Integer] -&gt; Integer
+forall a. Num a =&gt; [a] -&gt; a
+forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078547"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-85"></span><span class="annot"><a href="Language.Lisp.Primitives.html#factorial"><span class="hs-identifier hs-var">factorial</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078549"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078549"><span class="hs-identifier hs-var">notNum</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;number&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078549"><span class="hs-identifier hs-var">notNum</span></a></span><span>
+</span><span id="line-86"></span><span class="annot"><a href="Language.Lisp.Primitives.html#factorial"><span class="hs-identifier hs-var">factorial</span></a></span><span> </span><span id="local-6989586621679078551"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078551"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078551"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- Make-list</span><span>
+</span><span id="line-89"></span><span class="annot"><a href="Language.Lisp.Primitives.html#makeList"><span class="hs-identifier hs-type">makeList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-90"></span><span id="makeList"><span class="annot"><span class="annottext">makeList :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#makeList"><span class="hs-identifier hs-var hs-var">makeList</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-type">LNumber</span></a></span><span> </span><span id="local-6989586621679078552"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078552"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679078553"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078553"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">]</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078552"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispError
+</span><a href="Language.Lisp.Types.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;make-list: negative length&quot;</span></span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; ([LispVal] -&gt; LispVal) -&gt; PrimFunc
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-var">LList</span></a></span><span> </span><span class="annot"><span class="annottext">PrimFunc -&gt; PrimFunc
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; LispVal -&gt; [LispVal]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078552"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078553"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-93"></span><span class="annot"><a href="Language.Lisp.Primitives.html#makeList"><span class="hs-identifier hs-var">makeList</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078556"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078556"><span class="hs-identifier hs-var">notNum</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;number&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078556"><span class="hs-identifier hs-var">notNum</span></a></span><span>
+</span><span id="line-94"></span><span class="annot"><a href="Language.Lisp.Primitives.html#makeList"><span class="hs-identifier hs-var">makeList</span></a></span><span> </span><span id="local-6989586621679078557"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078557"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078557"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- Op&#233;rations bool&#233;ennes</span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-type">numBoolBinop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-98"></span><span id="numBoolBinop"><span class="annot"><span class="annottext">numBoolBinop :: (Integer -&gt; Integer -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var hs-var">numBoolBinop</span></a></span></span><span> </span><span id="local-6989586621679078558"><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679078558"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078559"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078559"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679078560"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078560"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-99"></span><span>    </span><span id="local-6989586621679078561"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078561"><span class="hs-identifier hs-var">left</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078559"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-100"></span><span>    </span><span id="local-6989586621679078562"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078562"><span class="hs-identifier hs-var">right</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078560"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Bool -&gt; LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; LispEval LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679078558"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078561"><span class="hs-identifier hs-var">left</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078562"><span class="hs-identifier hs-var">right</span></a></span><span>
+</span><span id="line-102"></span><span class="annot"><a href="Language.Lisp.Primitives.html#numBoolBinop"><span class="hs-identifier hs-var">numBoolBinop</span></a></span><span> </span><span id="local-6989586621679078564"><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679078564"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679078565"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078565"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078565"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="annot"><a href="Language.Lisp.Primitives.html#boolBoolBinop"><span class="hs-identifier hs-type">boolBoolBinop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-105"></span><span id="boolBoolBinop"><span class="annot"><span class="annottext">boolBoolBinop :: (Bool -&gt; Bool -&gt; Bool) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#boolBoolBinop"><span class="hs-identifier hs-var hs-var">boolBoolBinop</span></a></span></span><span> </span><span id="local-6989586621679078566"><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679078566"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679078567"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078567"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-106"></span><span>    </span><span id="local-6989586621679078568"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679078568"><span class="hs-identifier hs-var">bools</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool)
+-&gt; [LispVal] -&gt; ReaderT LispEnv (ExceptT LispError IO) [Bool]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool
+</span><a href="Language.Lisp.Primitives.html#unpackBool"><span class="hs-identifier hs-var">unpackBool</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078567"><span class="hs-identifier hs-var">params</span></a></span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Bool -&gt; LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; LispEval LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool -&gt; Bool) -&gt; [Bool] -&gt; Bool
+forall a. (a -&gt; a -&gt; a) -&gt; [a] -&gt; a
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; a -&gt; a) -&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">foldl1</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679078566"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679078568"><span class="hs-identifier hs-var">bools</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unaryOp"><span class="hs-identifier hs-type">unaryOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-110"></span><span id="unaryOp"><span class="annot"><span class="annottext">unaryOp :: (LispVal -&gt; LispEval LispVal) -&gt; PrimFunc
+</span><a href="Language.Lisp.Primitives.html#unaryOp"><span class="hs-identifier hs-var hs-var">unaryOp</span></a></span></span><span> </span><span id="local-6989586621679078570"><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+</span><a href="#local-6989586621679078570"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078571"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078571"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+</span><a href="#local-6989586621679078570"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078571"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-111"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unaryOp"><span class="hs-identifier hs-var">unaryOp</span></a></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679078572"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078572"><span class="hs-identifier hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078572"><span class="hs-identifier hs-var">args</span></a></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="annot"><a href="Language.Lisp.Primitives.html#notOp"><span class="hs-identifier hs-type">notOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-114"></span><span id="notOp"><span class="annot"><span class="annottext">notOp :: LispVal -&gt; LispEval LispVal
+</span><a href="Language.Lisp.Primitives.html#notOp"><span class="hs-identifier hs-var hs-var">notOp</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-type">LBool</span></a></span><span> </span><span id="local-6989586621679078573"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679078573"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Bool -&gt; LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; LispEval LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679078573"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-115"></span><span class="annot"><a href="Language.Lisp.Primitives.html#notOp"><span class="hs-identifier hs-var">notOp</span></a></span><span> </span><span id="local-6989586621679078575"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078575"><span class="hs-identifier hs-var">notBool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;boolean&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078575"><span class="hs-identifier hs-var">notBool</span></a></span><span>
+</span><span id="line-116"></span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- Op&#233;rations sur les listes</span><span>
+</span><span id="line-118"></span><span class="annot"><a href="Language.Lisp.Primitives.html#car"><span class="hs-identifier hs-type">car</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-119"></span><span id="car"><span class="annot"><span class="annottext">car :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#car"><span class="hs-identifier hs-var hs-var">car</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679078576"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078576"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span class="annot"><span class="annottext">[LispVal]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078576"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-120"></span><span class="annot"><a href="Language.Lisp.Primitives.html#car"><span class="hs-identifier hs-var">car</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078577"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078577"><span class="hs-identifier hs-var">badArg</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;list&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078577"><span class="hs-identifier hs-var">badArg</span></a></span><span>
+</span><span id="line-121"></span><span class="annot"><a href="Language.Lisp.Primitives.html#car"><span class="hs-identifier hs-var">car</span></a></span><span> </span><span id="local-6989586621679078578"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078578"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078578"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cdr"><span class="hs-identifier hs-type">cdr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-124"></span><span id="cdr"><span class="annot"><span class="annottext">cdr :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#cdr"><span class="hs-identifier hs-var hs-var">cdr</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679078579"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078579"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-var">LList</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078579"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-125"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cdr"><span class="hs-identifier hs-var">cdr</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078580"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078580"><span class="hs-identifier hs-var">badArg</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;list&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078580"><span class="hs-identifier hs-var">badArg</span></a></span><span>
+</span><span id="line-126"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cdr"><span class="hs-identifier hs-var">cdr</span></a></span><span> </span><span id="local-6989586621679078581"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078581"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078581"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-127"></span><span>
+</span><span id="line-128"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cons"><span class="hs-identifier hs-type">cons</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-129"></span><span id="cons"><span class="annot"><span class="annottext">cons :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#cons"><span class="hs-identifier hs-var hs-var">cons</span></a></span></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078582"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078582"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span id="local-6989586621679078583"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078583"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-var">LList</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078582"><span class="hs-identifier hs-var">x</span></a></span><span class="annot"><span class="annottext">LispVal -&gt; [LispVal] -&gt; [LispVal]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078583"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cons"><span class="hs-identifier hs-var">cons</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078584"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078584"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679078585"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078585"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-var">LList</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078584"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078585"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span class="annot"><a href="Language.Lisp.Primitives.html#cons"><span class="hs-identifier hs-var">cons</span></a></span><span> </span><span id="local-6989586621679078586"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078586"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078586"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="annot"><a href="Language.Lisp.Primitives.html#list"><span class="hs-identifier hs-type">list</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-134"></span><span id="list"><span class="annot"><span class="annottext">list :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#list"><span class="hs-identifier hs-var hs-var">list</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; ([LispVal] -&gt; LispVal) -&gt; PrimFunc
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-var">LList</span></a></span><span>
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Language.Lisp.Primitives.html#listLength"><span class="hs-identifier hs-type">listLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-137"></span><span id="listLength"><span class="annot"><span class="annottext">listLength :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#listLength"><span class="hs-identifier hs-var hs-var">listLength</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span id="local-6989586621679078587"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078587"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Int -&gt; LispVal) -&gt; Int -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal) -&gt; (Int -&gt; Integer) -&gt; Int -&gt; LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; LispEval LispVal) -&gt; Int -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[LispVal] -&gt; Int
+forall a. [a] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078587"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Language.Lisp.Primitives.html#listLength"><span class="hs-identifier hs-var">listLength</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078589"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078589"><span class="hs-identifier hs-var">badArg</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;list&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078589"><span class="hs-identifier hs-var">badArg</span></a></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Language.Lisp.Primitives.html#listLength"><span class="hs-identifier hs-var">listLength</span></a></span><span> </span><span id="local-6989586621679078590"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078590"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078590"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-140"></span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- Pr&#233;dicats</span><span>
+</span><span id="line-142"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNull"><span class="hs-identifier hs-type">isNull</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-143"></span><span id="isNull"><span class="annot"><span class="annottext">isNull :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isNull"><span class="hs-identifier hs-var hs-var">isNull</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-144"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNull"><span class="hs-identifier hs-var">isNull</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-145"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNull"><span class="hs-identifier hs-var">isNull</span></a></span><span> </span><span id="local-6989586621679078591"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078591"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078591"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isList"><span class="hs-identifier hs-type">isList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-148"></span><span id="isList"><span class="annot"><span class="annottext">isList :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isList"><span class="hs-identifier hs-var hs-var">isList</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LList"><span class="hs-identifier hs-type">LList</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-149"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isList"><span class="hs-identifier hs-var">isList</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-150"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isList"><span class="hs-identifier hs-var">isList</span></a></span><span> </span><span id="local-6989586621679078592"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078592"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078592"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isSymbol"><span class="hs-identifier hs-type">isSymbol</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-153"></span><span id="isSymbol"><span class="annot"><span class="annottext">isSymbol :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isSymbol"><span class="hs-identifier hs-var hs-var">isSymbol</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LAtom"><span class="hs-identifier hs-type">LAtom</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-154"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isSymbol"><span class="hs-identifier hs-var">isSymbol</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-155"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isSymbol"><span class="hs-identifier hs-var">isSymbol</span></a></span><span> </span><span id="local-6989586621679078594"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078594"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078594"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-156"></span><span>
+</span><span id="line-157"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNumber"><span class="hs-identifier hs-type">isNumber</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-158"></span><span id="isNumber"><span class="annot"><span class="annottext">isNumber :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isNumber"><span class="hs-identifier hs-var hs-var">isNumber</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-type">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-159"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNumber"><span class="hs-identifier hs-var">isNumber</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-160"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isNumber"><span class="hs-identifier hs-var">isNumber</span></a></span><span> </span><span id="local-6989586621679078595"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078595"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078595"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isString"><span class="hs-identifier hs-type">isString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-163"></span><span id="isString"><span class="annot"><span class="annottext">isString :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isString"><span class="hs-identifier hs-var hs-var">isString</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-type">LString</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-164"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isString"><span class="hs-identifier hs-var">isString</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-165"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isString"><span class="hs-identifier hs-var">isString</span></a></span><span> </span><span id="local-6989586621679078597"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078597"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078597"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-166"></span><span>
+</span><span id="line-167"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isBoolean"><span class="hs-identifier hs-type">isBoolean</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-168"></span><span id="isBoolean"><span class="annot"><span class="annottext">isBoolean :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#isBoolean"><span class="hs-identifier hs-var hs-var">isBoolean</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-type">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-169"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isBoolean"><span class="hs-identifier hs-var">isBoolean</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-170"></span><span class="annot"><a href="Language.Lisp.Primitives.html#isBoolean"><span class="hs-identifier hs-var">isBoolean</span></a></span><span> </span><span id="local-6989586621679078598"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078598"><span class="hs-identifier hs-var">badArgs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078598"><span class="hs-identifier hs-var">badArgs</span></a></span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- Op&#233;rations sur les cha&#238;nes</span><span>
+</span><span id="line-173"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringAppend"><span class="hs-identifier hs-type">stringAppend</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-174"></span><span id="stringAppend"><span class="annot"><span class="annottext">stringAppend :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringAppend"><span class="hs-identifier hs-var hs-var">stringAppend</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal) -&gt; LispVal -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-var">LString</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-175"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringAppend"><span class="hs-identifier hs-var">stringAppend</span></a></span><span> </span><span id="local-6989586621679078599"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078599"><span class="hs-identifier hs-var">strs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-176"></span><span>    </span><span id="local-6989586621679078600"><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679078600"><span class="hs-identifier hs-var">strings</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) String)
+-&gt; [LispVal] -&gt; ReaderT LispEnv (ExceptT LispError IO) [String]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; m b) -&gt; [a] -&gt; m [b]
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) String
+</span><a href="Language.Lisp.Primitives.html#unpackString"><span class="hs-identifier hs-var">unpackString</span></a></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078599"><span class="hs-identifier hs-var">strs</span></a></span><span>
+</span><span id="line-177"></span><span>    </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (String -&gt; LispVal) -&gt; String -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-var">LString</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; LispEval LispVal) -&gt; String -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[String] -&gt; String
+forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679078600"><span class="hs-identifier hs-var">strings</span></a></span><span>
+</span><span id="line-178"></span><span>
+</span><span id="line-179"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringLength"><span class="hs-identifier hs-type">stringLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-180"></span><span id="stringLength"><span class="annot"><span class="annottext">stringLength :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringLength"><span class="hs-identifier hs-var hs-var">stringLength</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-type">LString</span></a></span><span> </span><span id="local-6989586621679078603"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078603"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Int -&gt; LispVal) -&gt; Int -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-var">LNumber</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; LispVal) -&gt; (Int -&gt; Integer) -&gt; Int -&gt; LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; LispEval LispVal) -&gt; Int -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+forall a. [a] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078603"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-181"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringLength"><span class="hs-identifier hs-var">stringLength</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679078604"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078604"><span class="hs-identifier hs-var">badArg</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078604"><span class="hs-identifier hs-var">badArg</span></a></span><span>
+</span><span id="line-182"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringLength"><span class="hs-identifier hs-var">stringLength</span></a></span><span> </span><span id="local-6989586621679078605"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078605"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078605"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-183"></span><span>
+</span><span id="line-184"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringEq"><span class="hs-identifier hs-type">stringEq</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span>
+</span><span id="line-185"></span><span id="stringEq"><span class="annot"><span class="annottext">stringEq :: PrimFunc
+</span><a href="Language.Lisp.Primitives.html#stringEq"><span class="hs-identifier hs-var hs-var">stringEq</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-type">LString</span></a></span><span> </span><span id="local-6989586621679078606"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078606"><span class="hs-identifier hs-var">s1</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-type">LString</span></a></span><span> </span><span id="local-6989586621679078607"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078607"><span class="hs-identifier hs-var">s2</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispVal -&gt; LispEval LispVal
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(LispVal -&gt; LispEval LispVal)
+-&gt; (Bool -&gt; LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-var">LBool</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; LispEval LispVal) -&gt; Bool -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078606"><span class="hs-identifier hs-var">s1</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078607"><span class="hs-identifier hs-var">s2</span></a></span><span>
+</span><span id="line-186"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringEq"><span class="hs-identifier hs-var">stringEq</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><span class="hs-identifier">_</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string&quot;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; LispVal
+</span><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-var">LString</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-187"></span><span class="annot"><a href="Language.Lisp.Primitives.html#stringEq"><span class="hs-identifier hs-var">stringEq</span></a></span><span> </span><span id="local-6989586621679078608"><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078608"><span class="hs-identifier hs-var">badArgList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; LispEval LispVal
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; LispEval LispVal) -&gt; LispError -&gt; LispEval LispVal
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [LispVal] -&gt; LispError
+</span><a href="Language.Lisp.Types.html#NumArgs"><span class="hs-identifier hs-var">NumArgs</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">[LispVal]
+</span><a href="#local-6989586621679078608"><span class="hs-identifier hs-var">badArgList</span></a></span><span>
+</span><span id="line-188"></span><span>
+</span><span id="line-189"></span><span class="hs-comment">-- Fonctions d'aide</span><span>
+</span><span id="line-190"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-type">unpackNum</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-191"></span><span id="unpackNum"><span class="annot"><span class="annottext">unpackNum :: LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+</span><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var hs-var">unpackNum</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Lisp.Types.html#LNumber"><span class="hs-identifier hs-type">LNumber</span></a></span><span> </span><span id="local-6989586621679078609"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078609"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679078609"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-192"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackNum"><span class="hs-identifier hs-var">unpackNum</span></a></span><span> </span><span id="local-6989586621679078610"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078610"><span class="hs-identifier hs-var">notNum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer)
+-&gt; LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;number&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078610"><span class="hs-identifier hs-var">notNum</span></a></span><span>
+</span><span id="line-193"></span><span>
+</span><span id="line-194"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackBool"><span class="hs-identifier hs-type">unpackBool</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-195"></span><span id="unpackBool"><span class="annot"><span class="annottext">unpackBool :: LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool
+</span><a href="Language.Lisp.Primitives.html#unpackBool"><span class="hs-identifier hs-var hs-var">unpackBool</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Lisp.Types.html#LBool"><span class="hs-identifier hs-type">LBool</span></a></span><span> </span><span id="local-6989586621679078611"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679078611"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679078611"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-196"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackBool"><span class="hs-identifier hs-var">unpackBool</span></a></span><span> </span><span id="local-6989586621679078612"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078612"><span class="hs-identifier hs-var">notBool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool)
+-&gt; LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;boolean&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078612"><span class="hs-identifier hs-var">notBool</span></a></span><span>
+</span><span id="line-197"></span><span>
+</span><span id="line-198"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackString"><span class="hs-identifier hs-type">unpackString</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispVal"><span class="hs-identifier hs-type">LispVal</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Language.Lisp.Types.html#LispEval"><span class="hs-identifier hs-type">LispEval</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-199"></span><span id="unpackString"><span class="annot"><span class="annottext">unpackString :: LispVal -&gt; ReaderT LispEnv (ExceptT LispError IO) String
+</span><a href="Language.Lisp.Primitives.html#unpackString"><span class="hs-identifier hs-var hs-var">unpackString</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Lisp.Types.html#LString"><span class="hs-identifier hs-type">LString</span></a></span><span> </span><span id="local-6989586621679078613"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078613"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; ReaderT LispEnv (ExceptT LispError IO) String
+forall a. a -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679078613"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-200"></span><span class="annot"><a href="Language.Lisp.Primitives.html#unpackString"><span class="hs-identifier hs-var">unpackString</span></a></span><span> </span><span id="local-6989586621679078614"><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078614"><span class="hs-identifier hs-var">notString</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) String
+forall a. LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) a
+forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
+</span><span class="hs-identifier hs-var">throwError</span></span><span> </span><span class="annot"><span class="annottext">(LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) String)
+-&gt; LispError -&gt; ReaderT LispEnv (ExceptT LispError IO) String
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; LispVal -&gt; LispError
+</span><a href="Language.Lisp.Types.html#TypeMismatch"><span class="hs-identifier hs-var">TypeMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;string&quot;</span></span><span> </span><span class="annot"><span class="annottext">LispVal
+</span><a href="#local-6989586621679078614"><span class="hs-identifier hs-var">notString</span></a></span></pre></body></html>

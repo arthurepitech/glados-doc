@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>  </span><span class="hs-comment">-- N&#233;cessaire pour la d&#233;rivation automatique des instances Binary</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Language.Python.VM.Types</span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier">VMInstruction</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#VMState"><span class="hs-identifier">VMState</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#Frame"><span class="hs-identifier">Frame</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#VMResult"><span class="hs-identifier">VMResult</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Python.Types.html"><span class="hs-identifier">Language.Python.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Python.Types.html#PyValue"><span class="hs-identifier">PyValue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.Types.html#PyEnv"><span class="hs-identifier">PyEnv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- Instructions de la machine virtuelle</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">data</span><span> </span><span id="VMInstruction"><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier hs-var">VMInstruction</span></a></span></span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="LOAD_CONST"><span class="annot"><a href="Language.Python.VM.Types.html#LOAD_CONST"><span class="hs-identifier hs-var">LOAD_CONST</span></a></span></span><span> </span><span class="annot"><a href="Language.Python.Types.html#PyValue"><span class="hs-identifier hs-type">PyValue</span></a></span><span>    </span><span class="hs-comment">-- Charge une constante sur la pile</span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="LOAD_VAR"><span class="annot"><a href="Language.Python.VM.Types.html#LOAD_VAR"><span class="hs-identifier hs-var">LOAD_VAR</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>       </span><span class="hs-comment">-- Charge une variable sur la pile</span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="STORE_VAR"><span class="annot"><a href="Language.Python.VM.Types.html#STORE_VAR"><span class="hs-identifier hs-var">STORE_VAR</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>      </span><span class="hs-comment">-- Stocke une valeur dans une variable</span><span>
+</span><span id="line-20"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="BINARY_OP"><span class="annot"><a href="Language.Python.VM.Types.html#BINARY_OP"><span class="hs-identifier hs-var">BINARY_OP</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>      </span><span class="hs-comment">-- Op&#233;ration binaire (+, -, *, /, **)</span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="UNARY_OP"><span class="annot"><a href="Language.Python.VM.Types.html#UNARY_OP"><span class="hs-identifier hs-var">UNARY_OP</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>       </span><span class="hs-comment">-- Op&#233;ration unaire (-)</span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="CALL"><span class="annot"><a href="Language.Python.VM.Types.html#CALL"><span class="hs-identifier hs-var">CALL</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>       </span><span class="hs-comment">-- Appel de fonction (nom, nombre d'arguments)</span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RETURN"><span class="annot"><a href="Language.Python.VM.Types.html#RETURN"><span class="hs-identifier hs-var">RETURN</span></a></span></span><span>                </span><span class="hs-comment">-- Retour de fonction</span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="JUMP"><span class="annot"><a href="Language.Python.VM.Types.html#JUMP"><span class="hs-identifier hs-var">JUMP</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>              </span><span class="hs-comment">-- Saut inconditionnel</span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="JUMP_IF_FALSE"><span class="annot"><a href="Language.Python.VM.Types.html#JUMP_IF_FALSE"><span class="hs-identifier hs-var">JUMP_IF_FALSE</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>     </span><span class="hs-comment">-- Saut conditionnel</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="MAKE_LIST"><span class="annot"><a href="Language.Python.VM.Types.html#MAKE_LIST"><span class="hs-identifier hs-var">MAKE_LIST</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>         </span><span class="hs-comment">-- Cr&#233;e une liste avec n &#233;l&#233;ments</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="MAKE_FUNCTION"><span class="annot"><a href="Language.Python.VM.Types.html#MAKE_FUNCTION"><span class="hs-identifier hs-var">MAKE_FUNCTION</span></a></span></span><span>         </span><span class="hs-comment">-- Cr&#233;e une fonction (pas encore impl&#233;ment&#233;)</span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="POP"><span class="annot"><a href="Language.Python.VM.Types.html#POP"><span class="hs-identifier hs-var">POP</span></a></span></span><span>                   </span><span class="hs-comment">-- D&#233;pile le sommet de la pile</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679081258"><span id="local-6989586621679081284"><span id="local-6989586621679081288"><span class="annot"><span class="annottext">Int -&gt; VMInstruction -&gt; ShowS
+[VMInstruction] -&gt; ShowS
+VMInstruction -&gt; String
+(Int -&gt; VMInstruction -&gt; ShowS)
+-&gt; (VMInstruction -&gt; String)
+-&gt; ([VMInstruction] -&gt; ShowS)
+-&gt; Show VMInstruction
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; VMInstruction -&gt; ShowS
+showsPrec :: Int -&gt; VMInstruction -&gt; ShowS
+$cshow :: VMInstruction -&gt; String
+show :: VMInstruction -&gt; String
+$cshowList :: [VMInstruction] -&gt; ShowS
+showList :: [VMInstruction] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679081293"><span id="local-6989586621679081309"><span class="annot"><span class="annottext">VMInstruction -&gt; VMInstruction -&gt; Bool
+(VMInstruction -&gt; VMInstruction -&gt; Bool)
+-&gt; (VMInstruction -&gt; VMInstruction -&gt; Bool) -&gt; Eq VMInstruction
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: VMInstruction -&gt; VMInstruction -&gt; Bool
+== :: VMInstruction -&gt; VMInstruction -&gt; Bool
+$c/= :: VMInstruction -&gt; VMInstruction -&gt; Bool
+/= :: VMInstruction -&gt; VMInstruction -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679081315"><span id="local-6989586621679081317"><span class="annot"><span class="annottext">(forall x. VMInstruction -&gt; Rep VMInstruction x)
+-&gt; (forall x. Rep VMInstruction x -&gt; VMInstruction)
+-&gt; Generic VMInstruction
+forall x. Rep VMInstruction x -&gt; VMInstruction
+forall x. VMInstruction -&gt; Rep VMInstruction x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cfrom :: forall x. VMInstruction -&gt; Rep VMInstruction x
+from :: forall x. VMInstruction -&gt; Rep VMInstruction x
+$cto :: forall x. Rep VMInstruction x -&gt; VMInstruction
+to :: forall x. Rep VMInstruction x -&gt; VMInstruction
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679081321"><span id="local-6989586621679081328"><span id="local-6989586621679081334"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier hs-type">VMInstruction</span></a></span></span></span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- Frame d'ex&#233;cution pour une meilleure isolation</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">data</span><span> </span><span id="Frame"><span class="annot"><a href="Language.Python.VM.Types.html#Frame"><span class="hs-identifier hs-var">Frame</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Frame"><span class="annot"><a href="Language.Python.VM.Types.html#Frame"><span class="hs-identifier hs-var">Frame</span></a></span></span><span> </span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="frameLocals"><span class="annot"><span class="annottext">Frame -&gt; PyEnv
+</span><a href="Language.Python.VM.Types.html#frameLocals"><span class="hs-identifier hs-var hs-var">frameLocals</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Python.Types.html#PyEnv"><span class="hs-identifier hs-type">PyEnv</span></a></span><span>         </span><span class="hs-comment">-- Variables locales de la frame</span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="frameValues"><span class="annot"><span class="annottext">Frame -&gt; [PyValue]
+</span><a href="Language.Python.VM.Types.html#frameValues"><span class="hs-identifier hs-var hs-var">frameValues</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Python.Types.html#PyValue"><span class="hs-identifier hs-type">PyValue</span></a></span><span class="hs-special">]</span><span>     </span><span class="hs-comment">-- Pile de valeurs de la frame</span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="frameReturn"><span class="annot"><span class="annottext">Frame -&gt; Int
+</span><a href="Language.Python.VM.Types.html#frameReturn"><span class="hs-identifier hs-var hs-var">frameReturn</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>           </span><span class="hs-comment">-- Adresse de retour (non utilis&#233; ici)</span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="frameParent"><span class="annot"><span class="annottext">Frame -&gt; Maybe Frame
+</span><a href="Language.Python.VM.Types.html#frameParent"><span class="hs-identifier hs-var hs-var">frameParent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html#Frame"><span class="hs-identifier hs-type">Frame</span></a></span><span>   </span><span class="hs-comment">-- Frame parente (pour la port&#233;e)</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679081477"><span id="local-6989586621679081489"><span id="local-6989586621679081493"><span class="annot"><span class="annottext">Int -&gt; Frame -&gt; ShowS
+[Frame] -&gt; ShowS
+Frame -&gt; String
+(Int -&gt; Frame -&gt; ShowS)
+-&gt; (Frame -&gt; String) -&gt; ([Frame] -&gt; ShowS) -&gt; Show Frame
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; Frame -&gt; ShowS
+showsPrec :: Int -&gt; Frame -&gt; ShowS
+$cshow :: Frame -&gt; String
+show :: Frame -&gt; String
+$cshowList :: [Frame] -&gt; ShowS
+showList :: [Frame] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- &#201;tat de la machine virtuelle</span><span>
+</span><span id="line-42"></span><span class="hs-keyword">data</span><span> </span><span id="VMState"><span class="annot"><a href="Language.Python.VM.Types.html#VMState"><span class="hs-identifier hs-var">VMState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="VMState"><span class="annot"><a href="Language.Python.VM.Types.html#VMState"><span class="hs-identifier hs-var">VMState</span></a></span></span><span> </span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="globalEnv"><span class="annot"><span class="annottext">VMState -&gt; PyEnv
+</span><a href="Language.Python.VM.Types.html#globalEnv"><span class="hs-identifier hs-var hs-var">globalEnv</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Language.Python.Types.html#PyEnv"><span class="hs-identifier hs-type">PyEnv</span></a></span><span>          </span><span class="hs-comment">-- Environnement global</span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="frames"><span class="annot"><span class="annottext">VMState -&gt; [Frame]
+</span><a href="Language.Python.VM.Types.html#frames"><span class="hs-identifier hs-var hs-var">frames</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Python.VM.Types.html#Frame"><span class="hs-identifier hs-type">Frame</span></a></span><span class="hs-special">]</span><span>           </span><span class="hs-comment">-- Pile des frames d'ex&#233;cution</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="currentPC"><span class="annot"><span class="annottext">VMState -&gt; Int
+</span><a href="Language.Python.VM.Types.html#currentPC"><span class="hs-identifier hs-var hs-var">currentPC</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>            </span><span class="hs-comment">-- Compteur ordinal (PC)</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="output"><span class="annot"><span class="annottext">VMState -&gt; [String]
+</span><a href="Language.Python.VM.Types.html#output"><span class="hs-identifier hs-var hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>          </span><span class="hs-comment">-- Buffer de sortie accumul&#233;</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679081502"><span id="local-6989586621679081512"><span id="local-6989586621679081516"><span class="annot"><span class="annottext">Int -&gt; VMState -&gt; ShowS
+[VMState] -&gt; ShowS
+VMState -&gt; String
+(Int -&gt; VMState -&gt; ShowS)
+-&gt; (VMState -&gt; String) -&gt; ([VMState] -&gt; ShowS) -&gt; Show VMState
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; VMState -&gt; ShowS
+showsPrec :: Int -&gt; VMState -&gt; ShowS
+$cshow :: VMState -&gt; String
+show :: VMState -&gt; String
+$cshowList :: [VMState] -&gt; ShowS
+showList :: [VMState] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- Type pour repr&#233;senter le r&#233;sultat d'une instruction</span><span>
+</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="VMResult"><span class="annot"><a href="Language.Python.VM.Types.html#VMResult"><span class="hs-identifier hs-var">VMResult</span></a></span></span><span> </span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="Continue"><span class="annot"><a href="Language.Python.VM.Types.html#Continue"><span class="hs-identifier hs-var">Continue</span></a></span></span><span>                    </span><span class="hs-comment">-- Continue l'ex&#233;cution normalement</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="Return"><span class="annot"><a href="Language.Python.VM.Types.html#Return"><span class="hs-identifier hs-var">Return</span></a></span></span><span> </span><span class="annot"><a href="Language.Python.Types.html#PyValue"><span class="hs-identifier hs-type">PyValue</span></a></span><span>              </span><span class="hs-comment">-- Retourne une valeur</span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="Jump"><span class="annot"><a href="Language.Python.VM.Types.html#Jump"><span class="hs-identifier hs-var">Jump</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>                    </span><span class="hs-comment">-- Saut &#224; une adresse</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="Print"><span class="annot"><a href="Language.Python.VM.Types.html#Print"><span class="hs-identifier hs-var">Print</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>                </span><span class="hs-comment">-- Affichage (d&#233;mo)</span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="Error"><span class="annot"><a href="Language.Python.VM.Types.html#Error"><span class="hs-identifier hs-var">Error</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>                </span><span class="hs-comment">-- Erreur</span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679081525"><span id="local-6989586621679081536"><span id="local-6989586621679081540"><span class="annot"><span class="annottext">Int -&gt; VMResult -&gt; ShowS
+[VMResult] -&gt; ShowS
+VMResult -&gt; String
+(Int -&gt; VMResult -&gt; ShowS)
+-&gt; (VMResult -&gt; String) -&gt; ([VMResult] -&gt; ShowS) -&gt; Show VMResult
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; VMResult -&gt; ShowS
+showsPrec :: Int -&gt; VMResult -&gt; ShowS
+$cshow :: VMResult -&gt; String
+show :: VMResult -&gt; String
+$cshowList :: [VMResult] -&gt; ShowS
+showList :: [VMResult] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span></pre></body></html>

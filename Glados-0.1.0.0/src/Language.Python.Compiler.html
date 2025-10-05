@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Language.Python.Compiler</span><span>
+</span><span id="line-2"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Language.Python.Compiler.html#compilePython"><span class="hs-identifier">compilePython</span></a></span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.Compiler.html#serialize"><span class="hs-identifier">serialize</span></a></span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Language.Python.Compiler.html#deserialize"><span class="hs-identifier">deserialize</span></a></span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Python.Types.html"><span class="hs-identifier">Language.Python.Types</span></a></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Python.VM.Types.html"><span class="hs-identifier">Language.Python.VM.Types</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Python.Parser.html"><span class="hs-identifier">Language.Python.Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Python.Parser.html#parsePython"><span class="hs-identifier">parsePython</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Language.Python.Common.html"><span class="hs-identifier">Language.Python.Common</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Language.Python.Common.html#compile"><span class="hs-identifier">compile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">encode</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decode</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Map</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- | Prend du code source Python en entr&#233;e et le compile en instructions pour la machine virtuelle.</span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- | En cas d'erreur de parsing, retourne l'erreur sous forme de cha&#238;ne.</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- | En cas de succ&#232;s, retourne la liste des instructions compil&#233;es.</span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Language.Python.Compiler.html#compilePython"><span class="hs-identifier hs-type">compilePython</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier hs-type">VMInstruction</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-19"></span><span id="compilePython"><span class="annot"><span class="annottext">compilePython :: String -&gt; Either String [VMInstruction]
+</span><a href="Language.Python.Compiler.html#compilePython"><span class="hs-identifier hs-var hs-var">compilePython</span></a></span></span><span> </span><span id="local-6989586621679082642"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679082642"><span class="hs-identifier hs-var">input</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">String -&gt; Either ParseError [PyExpr]
+</span><a href="Language.Python.Parser.html#parsePython"><span class="hs-identifier hs-var">parsePython</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679082642"><span class="hs-identifier hs-var">input</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679082643"><span class="annot"><span class="annottext">ParseError
+</span><a href="#local-6989586621679082643"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Either String [VMInstruction]
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String [VMInstruction])
+-&gt; String -&gt; Either String [VMInstruction]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ParseError -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">ParseError
+</span><a href="#local-6989586621679082643"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679082645"><span class="annot"><span class="annottext">[PyExpr]
+</span><a href="#local-6989586621679082645"><span class="hs-identifier hs-var">exprs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[VMInstruction] -&gt; Either String [VMInstruction]
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">([VMInstruction] -&gt; Either String [VMInstruction])
+-&gt; [VMInstruction] -&gt; Either String [VMInstruction]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(PyExpr -&gt; [VMInstruction]) -&gt; [PyExpr] -&gt; [VMInstruction]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="annot"><span class="annottext">PyExpr -&gt; [VMInstruction]
+</span><a href="Language.Python.Common.html#compile"><span class="hs-identifier hs-var">compile</span></a></span><span> </span><span class="annot"><span class="annottext">[PyExpr]
+</span><a href="#local-6989586621679082645"><span class="hs-identifier hs-var">exprs</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- | Convertit une liste d'instructions de la machine virtuelle en ByteString</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | pour pouvoir les sauvegarder dans un fichier ou les transmettre sur le r&#233;seau</span><span>
+</span><span id="line-25"></span><span class="annot"><a href="Language.Python.Compiler.html#serialize"><span class="hs-identifier hs-type">serialize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier hs-type">VMInstruction</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span>
+</span><span id="line-26"></span><span id="serialize"><span class="annot"><span class="annottext">serialize :: [VMInstruction] -&gt; ByteString
+</span><a href="Language.Python.Compiler.html#serialize"><span class="hs-identifier hs-var hs-var">serialize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[VMInstruction] -&gt; ByteString
+forall a. Binary a =&gt; a -&gt; ByteString
+</span><span class="hs-identifier hs-var">encode</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Convertit un ByteString en liste d'instructions de la machine virtuelle</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- | Utilis&#233; pour charger des instructions pr&#233;c&#233;demment s&#233;rialis&#233;es</span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Language.Python.Compiler.html#deserialize"><span class="hs-identifier hs-type">deserialize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Language.Python.VM.Types.html#VMInstruction"><span class="hs-identifier hs-type">VMInstruction</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-31"></span><span id="deserialize"><span class="annot"><span class="annottext">deserialize :: ByteString -&gt; Either String [VMInstruction]
+</span><a href="Language.Python.Compiler.html#deserialize"><span class="hs-identifier hs-var hs-var">deserialize</span></a></span></span><span> </span><span id="local-6989586621679082647"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679082647"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[VMInstruction] -&gt; Either String [VMInstruction]
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">([VMInstruction] -&gt; Either String [VMInstruction])
+-&gt; [VMInstruction] -&gt; Either String [VMInstruction]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; [VMInstruction]
+forall a. Binary a =&gt; ByteString -&gt; a
+</span><span class="hs-identifier hs-var">decode</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679082647"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-32"></span></pre></body></html>
